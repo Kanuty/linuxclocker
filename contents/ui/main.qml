@@ -7,11 +7,117 @@ import org.kde.plasma.components as PlasmaComponents
 PlasmoidItem {
     id: root
 
-    compactRepresentation: Component {
-        PanelCompactRepresentation {}
+    preferredRepresentation: compactRepresentation
+
+    compactRepresentation: Item {
+        id: compactRoot
+        Layout.fillWidth: false
+        Layout.fillHeight: true
+        implicitWidth: clocksRow.implicitWidth
+        implicitHeight: clocksRow.implicitHeight
+
+        RowLayout {
+            id: clocksRow
+            anchors.centerIn: parent
+            spacing: 10
+
+            Repeater {
+                model: root.activeClocks
+
+                delegate: RowLayout {
+                    required property var modelData
+                    visible: modelData.enabled !== false
+                    spacing: 3
+
+                    PlasmaComponents.Label {
+                        visible: root.showTimezoneName && modelData.name !== ""
+                        text: modelData.name + ":"
+                        font.bold: true
+                        font.pointSize: 9
+                        opacity: 0.9
+                    }
+
+                    PlasmaComponents.Label {
+                        text: root.formatClockTime(modelData.iana, root.currentTime)
+                        font.pointSize: 9
+                    }
+                }
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton
+            onClicked: {
+                root.expanded = !root.expanded;
+            }
+        }
     }
-    fullRepresentation: Component {
-        PanelFullRepresentation {}
+
+    fullRepresentation: Item {
+        id: fullRoot
+        implicitWidth: 280
+        implicitHeight: Math.max(180, clockRepeater.count * 40 + 60)
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 10
+            spacing: 10
+
+            PlasmaComponents.Label {
+                text: "Multi Timezone Clocks"
+                font.bold: true
+                font.pointSize: 11
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            QQC2.ScrollView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                ColumnLayout {
+                    width: parent.width
+                    spacing: 6
+
+                    Repeater {
+                        id: clockRepeater
+                        model: root.activeClocks
+
+                        delegate: QQC2.ItemDelegate {
+                            required property var modelData
+                            visible: modelData.enabled !== false
+                            Layout.fillWidth: true
+
+                            contentItem: RowLayout {
+                                spacing: 10
+                                PlasmaComponents.Label {
+                                    text: modelData.name
+                                    font.bold: true
+                                    Layout.preferredWidth: 100
+                                    elide: Text.ElideRight
+                                }
+                                PlasmaComponents.Label {
+                                    text: root.formatClockTime(modelData.iana, root.currentTime)
+                                    font.pointSize: 11
+                                    Layout.fillWidth: true
+                                    horizontalAlignment: Text.AlignRight
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            QQC2.Button {
+                text: "Configure Timezones..."
+                icon.name: "configure"
+                Layout.fillWidth: true
+                onClicked: {
+                    root.expanded = false;
+                    Plasmoid.action("configure").trigger();
+                }
+            }
+        }
     }
 
     // Config accessors
@@ -126,103 +232,6 @@ PlasmoidItem {
                 return dtfFallback.format(dateObj);
             } catch (e2) {
                 return dateObj.toLocaleTimeString();
-            }
-        }
-    }
-
-    // Inline Compact Representation Component for KDE Plasma Panel
-    component PanelCompactRepresentation : RowLayout {
-        spacing: 12
-
-        Repeater {
-            model: root.activeClocks
-
-            delegate: RowLayout {
-                required property var modelData
-                visible: modelData.enabled !== false
-                spacing: 4
-
-                PlasmaComponents.Label {
-                    visible: root.showTimezoneName && modelData.name !== ""
-                    text: modelData.name + ":"
-                    font.bold: true
-                    font.pixelSize: 12
-                    opacity: 0.85
-                }
-
-                PlasmaComponents.Label {
-                    text: root.formatClockTime(modelData.iana, root.currentTime)
-                    font.pixelSize: 13
-                }
-            }
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            acceptedButtons: Qt.LeftButton
-            onClicked: {
-                root.expanded = !root.expanded;
-            }
-        }
-    }
-
-    // Expanded Popup Representation Component when clicked
-    component PanelFullRepresentation : ColumnLayout {
-        Layout.preferredWidth: 260
-        Layout.preferredHeight: Math.max(150, clockRepeater.count * 45 + 50)
-        spacing: 10
-
-        PlasmaComponents.Label {
-            text: "Multi Timezone Clocks"
-            font.bold: true
-            font.pixelSize: 15
-            Layout.alignment: Qt.AlignHCenter
-        }
-
-        QQC2.ScrollView {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-
-            ColumnLayout {
-                width: parent.width
-                spacing: 8
-
-                Repeater {
-                    id: clockRepeater
-                    model: root.activeClocks
-
-                    delegate: QQC2.ItemDelegate {
-                        required property var modelData
-                        visible: modelData.enabled !== false
-                        Layout.fillWidth: true
-
-                        contentItem: RowLayout {
-                            spacing: 10
-                            PlasmaComponents.Label {
-                                text: modelData.name
-                                font.bold: true
-                                Layout.preferredWidth: 90
-                                elide: Text.ElideRight
-                            }
-                            PlasmaComponents.Label {
-                                text: root.formatClockTime(modelData.iana, root.currentTime)
-                                font.pixelSize: 14
-                                Layout.fillWidth: true
-                                horizontalAlignment: Text.AlignRight
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        QQC2.Button {
-            text: "Configure Timezones..."
-            icon.name: "configure"
-            Layout.fillWidth: true
-            onClicked: {
-                root.expanded = false;
-                Plasmoid.action("configure").trigger();
             }
         }
     }

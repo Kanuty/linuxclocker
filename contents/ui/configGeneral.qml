@@ -3,6 +3,7 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCM
+import org.kde.plasma.plasmoid
 
 KCM.SimpleKCM {
     id: root
@@ -39,7 +40,7 @@ KCM.SimpleKCM {
         { "label": "Asia / Dubai (GST)", "iana": "Asia/Dubai" },
         { "label": "Australia / Sydney (AEST)", "iana": "Australia/Sydney" },
         { "label": "Pacific / Auckland (NZST)", "iana": "Pacific/Auckland" },
-        { "label": "Custom Timezone String...", "iana": "Custom" }
+        { "label": "Custom Timezone / Offset...", "iana": "Custom" }
     ]
 
     ListModel {
@@ -58,8 +59,13 @@ KCM.SimpleKCM {
 
     function loadClocks() {
         clocksModel.clear();
+        var rawJson = cfg_clocksConfig;
+        if ((!rawJson || rawJson === "[]") && typeof Plasmoid !== "undefined" && Plasmoid.configuration && Plasmoid.configuration.clocksConfig) {
+            rawJson = Plasmoid.configuration.clocksConfig;
+        }
+
         try {
-            var parsed = JSON.parse(cfg_clocksConfig);
+            var parsed = JSON.parse(rawJson);
             if (Array.isArray(parsed) && parsed.length > 0) {
                 for (var i = 0; i < parsed.length; i++) {
                     clocksModel.append({
@@ -77,6 +83,7 @@ KCM.SimpleKCM {
     }
 
     function defaultClocks() {
+        clocksModel.clear();
         clocksModel.append({ "name": "Local", "iana": "Local", "enabled": true });
         clocksModel.append({ "name": "Warsaw", "iana": "Europe/Warsaw", "enabled": true });
         clocksModel.append({ "name": "UTC", "iana": "UTC", "enabled": true });
@@ -96,7 +103,11 @@ KCM.SimpleKCM {
                 "enabled": item.enabled
             });
         }
-        cfg_clocksConfig = JSON.stringify(list);
+        var jsonStr = JSON.stringify(list);
+        cfg_clocksConfig = jsonStr;
+        if (typeof Plasmoid !== "undefined" && Plasmoid.configuration) {
+            Plasmoid.configuration.clocksConfig = jsonStr;
+        }
         isInternalSaving = false;
     }
 
@@ -182,7 +193,7 @@ KCM.SimpleKCM {
 
                         QQC2.TextField {
                             text: model.iana
-                            placeholderText: "IANA timezone or offset"
+                            placeholderText: "IANA string or offset"
                             Layout.fillWidth: true
                             onEditingFinished: {
                                 clocksModel.setProperty(index, "iana", text);
