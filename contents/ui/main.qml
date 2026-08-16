@@ -8,9 +8,12 @@ import org.kde.plasma.components as PlasmaComponents
 PlasmoidItem {
     id: root
 
-    preferredRepresentation: compactRepresentation
-    compactRepresentation: PanelCompactRepresentation {}
-    fullRepresentation: PanelFullRepresentation {}
+    compactRepresentation: Component {
+        PanelCompactRepresentation {}
+    }
+    fullRepresentation: Component {
+        PanelFullRepresentation {}
+    }
 
     // Config accessors
     readonly property string clocksConfigStr: Plasmoid.configuration.clocksConfig || "[]"
@@ -84,7 +87,7 @@ PlasmoidItem {
         }
     }
 
-    // Inline Compact Representation for KDE Plasma Panel
+    // Inline Compact Representation Component for KDE Plasma Panel
     component PanelCompactRepresentation : RowLayout {
         spacing: 12
 
@@ -113,18 +116,14 @@ PlasmoidItem {
 
         MouseArea {
             anchors.fill: parent
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
-            onClicked: function(mouse) {
-                if (mouse.button === Qt.RightButton) {
-                    Plasmoid.action("configure").trigger();
-                } else {
-                    root.expanded = !root.expanded;
-                }
+            acceptedButtons: Qt.LeftButton
+            onClicked: {
+                root.expanded = !root.expanded;
             }
         }
     }
 
-    // Expanded Popup Representation when clicked
+    // Expanded Popup Representation Component when clicked
     component PanelFullRepresentation : ColumnLayout {
         Layout.preferredWidth: 260
         Layout.preferredHeight: Math.max(150, clockRepeater.count * 45 + 50)
