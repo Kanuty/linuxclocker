@@ -1,0 +1,19 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Multi-Zone Clock Developer"
+            }
+        ],
+        "Category": "Date and Time",
+        "Description": "Multi Timezone Clock widget for KDE Plasma Panel displaying customizable clocks with time zone names and toggle settings.",
+        "Icon": "preferences-system-time",
+        "Id": "org.kde.plasma.multizoneclock",
+        "License": "GPL-2.0-or-later",
+        "Name": "Multi Timezone Panel Clock",
+        "Version": "1.0.0",
+        "Website": ""
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API": "declarativeappletscript"
+}
