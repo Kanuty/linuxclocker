@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+  <kcfgfile name=""/>
+  <group name="General">
+    <entry name="clocksConfig" type="String">
+      <label>JSON string containing list of configured clocks</label>
+      <default>[{"name":"Local","iana":"Local","enabled":true},{"name":"UTC","iana":"UTC","enabled":true},{"name":"New York","iana":"America/New_York","enabled":true},{"name":"London","iana":"Europe/London","enabled":true},{"name":"Tokyo","iana":"Asia/Tokyo","enabled":true}]</default>
+    </entry>
+    <entry name="use24HourFormat" type="Bool">
+      <label>Use 24-hour time format</label>
+      <default>true</default>
+    </entry>
+    <entry name="showSeconds" type="Bool">
+      <label>Show seconds in clock display</label>
+      <default>false</default>
+    </entry>
+    <entry name="showTimezoneName" type="Bool">
+      <label>Show timezone name next to clock</label>
+      <default>true</default>
+    </entry>
+  </group>
+</kcfg>
