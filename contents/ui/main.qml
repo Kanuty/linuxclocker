@@ -55,31 +55,75 @@ PlasmoidItem {
     function defaultClocks() {
         return [
             { "name": "Local", "iana": "Local", "enabled": true },
+            { "name": "Warsaw", "iana": "Europe/Warsaw", "enabled": true },
             { "name": "UTC", "iana": "UTC", "enabled": true },
             { "name": "NY", "iana": "America/New_York", "enabled": true },
-            { "name": "London", "iana": "Europe/London", "enabled": true },
             { "name": "Tokyo", "iana": "Asia/Tokyo", "enabled": true }
         ];
     }
 
     function formatClockTime(iana, dateObj) {
+        var tz = iana;
+        if (!tz || tz === "Local" || tz === "LOCAL") {
+            try {
+                tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            } catch (e) {
+                tz = "UTC";
+            }
+        }
+
+        // Handle custom offset strings like UTC+2, +02:00, -05:00, etc.
+        if (/^(UTC|GMT)?[+-]\d{1,2}(:\d{2})?$/i.test(tz)) {
+            var match = tz.match(/([+-])(\d{1,2})(?::(\d{2}))?/);
+            if (match) {
+                var sign = match[1] === "+" ? 1 : -1;
+                var hrs = parseInt(match[2], 10);
+                var mins = match[3] ? parseInt(match[3], 10) : 0;
+                var offsetMin = sign * (hrs * 60 + mins);
+
+                var utcMs = dateObj.getTime() + (dateObj.getTimezoneOffset() * 60000);
+                var targetMs = utcMs + (offsetMin * 60000);
+                var targetDate = new Date(targetMs);
+
+                var hours = targetDate.getHours();
+                var minutes = targetDate.getMinutes();
+                var seconds = targetDate.getSeconds();
+
+                if (!root.use24HourFormat) {
+                    var ampm = hours >= 12 ? "PM" : "AM";
+                    hours = hours % 12;
+                    if (hours === 0) hours = 12;
+                    var hStr = hours < 10 ? "0" + hours : "" + hours;
+                    var mStr = minutes < 10 ? "0" + minutes : "" + minutes;
+                    var sStr = seconds < 10 ? "0" + seconds : "" + seconds;
+                    return hStr + ":" + mStr + (root.showSeconds ? ":" + sStr : "") + " " + ampm;
+                } else {
+                    var hStr = hours < 10 ? "0" + hours : "" + hours;
+                    var mStr = minutes < 10 ? "0" + minutes : "" + minutes;
+                    var sStr = seconds < 10 ? "0" + seconds : "" + seconds;
+                    return hStr + ":" + mStr + (root.showSeconds ? ":" + sStr : "");
+                }
+            }
+        }
+
+        // Standard IANA timezone formatting via Intl.DateTimeFormat
         try {
             var options = {
                 hour: '2-digit',
                 minute: '2-digit',
-                hour12: !root.use24HourFormat
+                hour12: !root.use24HourFormat,
+                timeZone: tz
             };
             if (root.showSeconds) {
                 options.second = '2-digit';
             }
-            if (iana && iana !== "Local") {
-                options.timeZone = iana;
-            }
             var localeTag = (Qt.locale && Qt.locale().name) ? Qt.locale().name.replace('_', '-') : undefined;
-            return dateObj.toLocaleTimeString(localeTag, options);
+            var dtf = new Intl.DateTimeFormat(localeTag, options);
+            return dtf.format(dateObj);
         } catch (e) {
             try {
-                return dateObj.toLocaleTimeString(undefined, options);
+                var dtfFallback = new Intl.DateTimeFormat('en-US', options);
+                return dtfFallback.format(dateObj);
             } catch (e2) {
                 return dateObj.toLocaleTimeString();
             }

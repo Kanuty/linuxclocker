@@ -14,6 +14,34 @@ KCM.SimpleKCM {
 
     property bool isInternalSaving: false
 
+    readonly property var availableTimezones: [
+        { "label": "Local (System Local Time)", "iana": "Local" },
+        { "label": "UTC (Coordinated Universal Time)", "iana": "UTC" },
+        { "label": "Europe / Warsaw", "iana": "Europe/Warsaw" },
+        { "label": "Europe / London (BST/GMT)", "iana": "Europe/London" },
+        { "label": "Europe / Paris", "iana": "Europe/Paris" },
+        { "label": "Europe / Berlin", "iana": "Europe/Berlin" },
+        { "label": "Europe / Rome", "iana": "Europe/Rome" },
+        { "label": "Europe / Madrid", "iana": "Europe/Madrid" },
+        { "label": "Europe / Athens", "iana": "Europe/Athens" },
+        { "label": "Europe / Moscow", "iana": "Europe/Moscow" },
+        { "label": "America / New York (EDT/EST)", "iana": "America/New_York" },
+        { "label": "America / Chicago (CDT/CST)", "iana": "America/Chicago" },
+        { "label": "America / Denver (MDT/MST)", "iana": "America/Denver" },
+        { "label": "America / Los Angeles (PDT/PST)", "iana": "America/Los_Angeles" },
+        { "label": "America / Toronto", "iana": "America/Toronto" },
+        { "label": "America / Sao Paulo", "iana": "America/Sao_Paulo" },
+        { "label": "Asia / Tokyo (JST)", "iana": "Asia/Tokyo" },
+        { "label": "Asia / Shanghai (CST)", "iana": "Asia/Shanghai" },
+        { "label": "Asia / Hong Kong", "iana": "Asia/Hong_Kong" },
+        { "label": "Asia / Singapore", "iana": "Asia/Singapore" },
+        { "label": "Asia / Kolkata (IST)", "iana": "Asia/Kolkata" },
+        { "label": "Asia / Dubai (GST)", "iana": "Asia/Dubai" },
+        { "label": "Australia / Sydney (AEST)", "iana": "Australia/Sydney" },
+        { "label": "Pacific / Auckland (NZST)", "iana": "Pacific/Auckland" },
+        { "label": "Custom Timezone String...", "iana": "Custom" }
+    ]
+
     ListModel {
         id: clocksModel
     }
@@ -32,7 +60,7 @@ KCM.SimpleKCM {
         clocksModel.clear();
         try {
             var parsed = JSON.parse(cfg_clocksConfig);
-            if (Array.isArray(parsed)) {
+            if (Array.isArray(parsed) && parsed.length > 0) {
                 for (var i = 0; i < parsed.length; i++) {
                     clocksModel.append({
                         "name": parsed[i].name || "",
@@ -40,10 +68,21 @@ KCM.SimpleKCM {
                         "enabled": parsed[i].enabled !== undefined ? parsed[i].enabled : true
                     });
                 }
+            } else {
+                defaultClocks();
             }
         } catch (e) {
-            console.error("Error parsing clocksConfig JSON: " + e);
+            defaultClocks();
         }
+    }
+
+    function defaultClocks() {
+        clocksModel.append({ "name": "Local", "iana": "Local", "enabled": true });
+        clocksModel.append({ "name": "Warsaw", "iana": "Europe/Warsaw", "enabled": true });
+        clocksModel.append({ "name": "UTC", "iana": "UTC", "enabled": true });
+        clocksModel.append({ "name": "NY", "iana": "America/New_York", "enabled": true });
+        clocksModel.append({ "name": "Tokyo", "iana": "Asia/Tokyo", "enabled": true });
+        saveClocks();
     }
 
     function saveClocks() {
@@ -61,6 +100,15 @@ KCM.SimpleKCM {
         isInternalSaving = false;
     }
 
+    function getTzComboIndex(ianaVal) {
+        for (var i = 0; i < availableTimezones.length; i++) {
+            if (availableTimezones[i].iana === ianaVal) {
+                return i;
+            }
+        }
+        return availableTimezones.length - 1; // Custom
+    }
+
     Kirigami.FormLayout {
         QQC2.CheckBox {
             id: use24HourCheckBox
@@ -76,22 +124,22 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             id: showTimezoneNameCheckBox
             Kirigami.FormData.label: "Display:"
-            text: "Show timezone name near clock"
+            text: "Show timezone name near clock on panel"
         }
 
         Item {
             Kirigami.FormData.isHeader: true
-            Kirigami.FormData.label: "Configured Timezone Clocks"
+            Kirigami.FormData.label: "Configured Clocks & Timezones"
         }
 
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: 10
 
             ListView {
                 id: clocksListView
                 Layout.fillWidth: true
-                implicitHeight: Math.min(300, Math.max(120, clocksModel.count * 45))
+                implicitHeight: Math.min(380, Math.max(160, clocksModel.count * 55))
                 model: clocksModel
                 clip: true
 
@@ -102,6 +150,7 @@ KCM.SimpleKCM {
 
                         QQC2.CheckBox {
                             checked: model.enabled
+                            text: "Show"
                             onCheckedChanged: {
                                 clocksModel.setProperty(index, "enabled", checked);
                                 root.saveClocks();
@@ -110,17 +159,30 @@ KCM.SimpleKCM {
 
                         QQC2.TextField {
                             text: model.name
-                            placeholderText: "Clock Name (e.g., NY)"
-                            Layout.preferredWidth: 120
+                            placeholderText: "Name (e.g. Warsaw)"
+                            Layout.preferredWidth: 100
                             onEditingFinished: {
                                 clocksModel.setProperty(index, "name", text);
                                 root.saveClocks();
                             }
                         }
 
+                        QQC2.ComboBox {
+                            Layout.preferredWidth: 200
+                            model: root.availableTimezones.map(function(item) { return item.label; })
+                            currentIndex: root.getTzComboIndex(model.iana)
+                            onActivated: function(idx) {
+                                var selected = root.availableTimezones[idx];
+                                if (selected.iana !== "Custom") {
+                                    clocksModel.setProperty(index, "iana", selected.iana);
+                                    root.saveClocks();
+                                }
+                            }
+                        }
+
                         QQC2.TextField {
                             text: model.iana
-                            placeholderText: "Timezone (e.g. America/New_York, UTC, Local)"
+                            placeholderText: "IANA timezone or offset"
                             Layout.fillWidth: true
                             onEditingFinished: {
                                 clocksModel.setProperty(index, "iana", text);
@@ -158,9 +220,9 @@ KCM.SimpleKCM {
             }
 
             RowLayout {
-                spacing: 10
+                spacing: 12
                 QQC2.Button {
-                    text: "Add Clock"
+                    text: "Add New Clock"
                     icon.name: "list-add"
                     onClicked: {
                         clocksModel.append({
@@ -173,41 +235,22 @@ KCM.SimpleKCM {
                 }
 
                 QQC2.ComboBox {
-                    id: presetCombo
-                    model: [
-                        "Quick Preset...",
-                        "Local (System Local)",
-                        "UTC (Coordinated Universal Time)",
-                        "America/New_York (New York / EDT)",
-                        "America/Los_Angeles (Los Angeles / PDT)",
-                        "Europe/London (London / GMT/BST)",
-                        "Europe/Paris (Paris / CET)",
-                        "Asia/Tokyo (Tokyo / JST)",
-                        "Asia/Kolkata (India / IST)",
-                        "Australia/Sydney (Sydney / AEST)"
-                    ]
+                    id: addPresetCombo
+                    model: ["Quick Add Timezone Preset..."].concat(root.availableTimezones.map(function(item) { return item.label; }))
                     onActivated: function(idx) {
                         if (idx <= 0) return;
-                        var presets = [
-                            {},
-                            {"name": "Local", "iana": "Local"},
-                            {"name": "UTC", "iana": "UTC"},
-                            {"name": "NY", "iana": "America/New_York"},
-                            {"name": "LA", "iana": "America/Los_Angeles"},
-                            {"name": "London", "iana": "Europe/London"},
-                            {"name": "Paris", "iana": "Europe/Paris"},
-                            {"name": "Tokyo", "iana": "Asia/Tokyo"},
-                            {"name": "India", "iana": "Asia/Kolkata"},
-                            {"name": "Sydney", "iana": "Australia/Sydney"}
-                        ];
-                        var item = presets[idx];
+                        var tzItem = root.availableTimezones[idx - 1];
+                        var defaultName = tzItem.iana.split("/").pop().replace("_", " ");
+                        if (tzItem.iana === "Local") defaultName = "Local";
+                        if (tzItem.iana === "UTC") defaultName = "UTC";
+
                         clocksModel.append({
-                            "name": item.name,
-                            "iana": item.iana,
+                            "name": defaultName,
+                            "iana": tzItem.iana,
                             "enabled": true
                         });
                         root.saveClocks();
-                        presetCombo.currentIndex = 0;
+                        addPresetCombo.currentIndex = 0;
                     }
                 }
             }
